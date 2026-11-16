@@ -28,8 +28,17 @@
   function resolve() {
     try {
       var params = new URLSearchParams(window.location.search);
-      var fromQuery = normalise(params.get('api'));
-      if (fromQuery) return fromQuery;
+      var rawQuery = params.get('api');
+      if (rawQuery) {
+        var trimmed = rawQuery.trim();
+        // A relative base such as /api keeps the dashboard on its own origin.
+        var fromQuery = trimmed.charAt(0) === '/'
+          ? (trimmed.replace(/\/+$/, '') || '/api')
+          : normalise(trimmed);
+        // Remember it for this browser so page navigation keeps working.
+        try { window.localStorage.setItem('cirs_api_base', fromQuery); } catch (err) { /* ignore */ }
+        return fromQuery;
+      }
 
       var fromStorage = normalise(window.localStorage.getItem('cirs_api_base'));
       if (fromStorage) return fromStorage;
