@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIRS — User Reports</title>
+<link rel="stylesheet" href="../css/main.css">
+<style>
+  .reports-table td { vertical-align: top; }
+  .ref { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--accent); letter-spacing: 0.5px; }
+  .domain { font-weight: 700; }
+  .url-cell { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12px; }
+  .detail-row { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid rgba(26,58,92,0.35); font-size: 13px; }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-label { width: 132px; flex-shrink: 0; color: var(--muted); font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; padding-top: 3px; }
+  .detail-value { flex: 1; word-break: break-word; }
+  .reasons-list { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .reasons-list li { border-left: 2px solid var(--border); padding: 3px 0 3px 10px; font-size: 12.5px; color: var(--text); }
+  .reasons-list li.high { border-left-color: var(--accent2); }
+  .reasons-list li.medium { border-left-color: var(--orange); }
+  .reasons-list li.low { border-left-color: var(--accent); }
+  .reasons-list .reason-detail { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .flow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .flow .step { font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 1px; padding: 3px 7px; border: 1px solid var(--border); border-radius: 2px; color: var(--muted); }
+  .flow .step.done { color: var(--green); border-color: rgba(0,255,157,0.35); }
+  .flow .step.current { color: var(--accent); border-color: var(--accent); background: rgba(0,212,255,0.08); }
+  .notes-box { background: rgba(0,212,255,0.04); border: 1px solid var(--border); border-radius: 3px; padding: 10px 12px; font-size: 13px; color: var(--text); white-space: pre-wrap; }
+  .investigate-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  .modal.modal-wide { max-width: 760px; }
+</style>
+</head>
+<body>
+<div class="app-layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="icon">🛡️</div>
+      <div class="title">CIRS</div>
+      <div class="sub">Incident Response</div>
+    </div>
+    <nav class="nav-section">
+      <div class="nav-label">Navigation</div>
+      <a href="dashboard.html" class="nav-item" data-page="dashboard"><span class="nav-icon">⬡</span> Dashboard</a>
+      <a href="events.html" class="nav-item" data-page="events"><span class="nav-icon">⚡</span> Events</a>
+      <a href="alerts.html" class="nav-item" data-page="alerts"><span class="nav-icon">🔔</span> Alerts
+        <span class="nav-badge" id="alertBadge" style="display:none">0</span>
+      </a>
+      <a href="reports.html" class="nav-item" data-page="reports"><span class="nav-icon">🚩</span> User Reports
+        <span class="nav-badge" id="reportBadge" style="display:none">0</span>
+      </a>
+      <a href="incidents.html" class="nav-item" data-page="incidents"><span class="nav-icon">⚠</span> Incidents</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="analyst-info">
+        <div class="analyst-avatar" id="analystInitials">--</div>
+        <div>
+          <div class="analyst-name" id="analystName">Loading...</div>
+          <div class="analyst-role" id="analystRole"></div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">[ SIGN OUT ]</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">CIRS / <span>User Reports</span></div>
+      <div class="topbar-right">
+        <div class="topbar-clock" id="clock"></div>
+        <div class="status-pill">INVESTIGATIONS</div>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <div class="flex items-center gap-4 mb-6" style="justify-content:space-between;flex-wrap:wrap">
+        <div class="filters-bar">
+          <input class="search-input" id="reportSearch" placeholder="Search reference, domain or URL..." oninput="debounceLoad()">
+          <select class="filter-select" id="statusFilter" onchange="loadReports()">
+            <option value="">All statuses</option>
+            <option>Submitted</option>
+            <option>Under Review</option>
+            <option>Investigating</option>
+            <option>Confirmed Threat</option>
+            <option>False Positive</option>
+            <option>Resolved</option>
+          </select>
+          <select class="filter-select" id="verdictFilter" onchange="loadReports()">
+            <option value="">All results</option>
+            <option>DANGEROUS</option>
+            <option>SUSPICIOUS</option>
+            <option>UNKNOWN</option>
+            <option>SAFE</option>
+          </select>
+        </div>
+        <div class="flex gap-3 items-center">
+          <span id="reportsCount" class="text-muted text-sm text-mono">—</span>
+          <button class="btn btn-primary" onclick="loadReports()">Refresh</button>
+        </div>
+      </div>
+
+      <div class="panel anim-up">
+        <div class="panel-header">
+          <div class="panel-title">Website Reports From Extension Users</div>
+          <span class="text-muted text-sm text-mono">Submission → Review → Investigation → Resolution</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table reports-table" id="reportsTable">
+            <thead>
+              <tr>
+                <th>Reference</th><th>Website</th><th>CIRS Result</th><th>Risk</th>
+                <th>Reporter</th><th>Status</th><th>Submitted</th><th>Action</th>
+              </tr>
+            </thead>
+            <tbody><tr class="loading-row"><td colspan="8">Loading reports...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- INVESTIGATION MODAL -->
+<div class="modal-overlay" id="reportModal">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <div class="modal-title">Investigation — <span id="modalReference" class="ref">—</span></div>
+      <button class="modal-close" onclick="closeModal('reportModal')">✕</button>
+    </div>
+    <div class="modal-body investigate-grid">
+      <div>
+        <div class="detail-row"><div class="detail-label">Website</div><div class="detail-value"><div class="domain" id="modalDomain">—</div><a id="modalUrl" href="#" target="_blank" rel="noreferrer noopener" class="url-cell" style="display:block">—</a></div></div>
+        <div class="detail-row"><div class="detail-label">CIRS Result</div><div class="detail-value" id="modalVerdict">—</div></div>
+        <div class="detail-row"><div class="detail-label">Reported By</div><div class="detail-value" id="modalReporter">—</div></div>
+        <div class="detail-row"><div class="detail-label">Submitted</div><div class="detail-value" id="modalCreated">—</div></div>
+        <div class="detail-row"><div class="detail-label">Linked Records</div><div class="detail-value" id="modalLinks">—</div></div>
+        <div class="detail-row"><div class="detail-label">User Description</div><div class="detail-value" id="modalDescription">—</div></div>
+        <div class="detail-row"><div class="detail-label">Detected Indicators</div><div class="detail-value"><ul class="reasons-list" id="modalReasons"></ul></div></div>
+        <div class="detail-row"><div class="detail-label">Analyst Notes</div><div class="detail-value"><div class="notes-box" id="modalNotes">No notes yet.</div></div></div>
+        <div class="flow" id="modalFlow"></div>
+      </div>
+
+      <div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Investigation Status *</label>
+            <select class="form-select" id="modalStatus">
+              <option>Submitted</option>
+              <option>Under Review</option>
+              <option>Investigating</option>
+              <option>Confirmed Threat</option>
+              <option>False Positive</option>
+              <option>Resolved</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Decision Guide</label>
+            <div class="text-sm text-muted" style="padding-top:8px;line-height:1.5">
+              Confirming a threat notifies the reporter immediately. False Positive and Resolved close the linked alert.
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Analyst Notes</label>
+          <textarea class="form-textarea" id="modalNoteInput" placeholder="What did you verify? Which evidence supports this decision?"></textarea>
+        </div>
+        <p class="text-sm" id="modalError" style="color:var(--accent2);display:none"></p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="closeModal('reportModal')">Cancel</button>
+      <button class="btn btn-primary" id="saveStatusBtn" onclick="saveStatus()">Update Status</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/app.js"></script>
+<script>
+  requireAuth();
+  initSidebar('reports');
+  initClock('clock');
+  loadReports();
+
+  const STATUS_FLOW = ['Submitted', 'Under Review', 'Investigating', 'Confirmed Threat', 'False Positive', 'Resolved'];
+  let activeReference = null;
+  let _searchTimer;
+
+  function debounceLoad() {
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(loadReports, 350);
+  }
+
+  async function loadReports() {
+    const tbody = document.querySelector('#reportsTable tbody');
+    const search = document.getElementById('reportSearch').value.trim();
+    const status = document.getElementById('statusFilter').value;
+    const verdict = document.getElementById('verdictFilter').value;
+    tbody.innerHTML = '<tr class="loading-row"><td colspan="8">Loading reports...</td></tr>';
+
+    try {
+      const qs = new URLSearchParams();
+      if (search) qs.set('search', search);
+      if (status) qs.set('status', status);
+      if (verdict) qs.set('verdict', verdict);
+      qs.set('limit', '100');
+
+      const reports = await api('/analyst/reports?' + qs);
+      document.getElementById('reportsCount').textContent = reports.length + ' reports';
+
+      if (!reports.length) {
+        tbody.innerHTML = '<tr class="loading-row"><td colspan="8">No user reports match these filters</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = reports.map(r => `
+        <tr>
+          <td class="ref">${escapeHtml(r.referenceId)}</td>
+          <td>
+            <div class="domain">${escapeHtml(r.domain)}</div>
+            <div class="url-cell" title="${escapeHtml(r.url)}">${escapeHtml(r.url)}</div>
+          </td>
+          <td>${verdictBadge(r.verdict)}</td>
+          <td class="mono">${r.riskScore}/100</td>
+          <td>
+            <div>${escapeHtml(r.userName || 'Unknown')}</div>
+            <div class="text-sm text-muted">${escapeHtml(r.userEmail || '')}</div>
+          </td>
+          <td>${reportStatusBadge(r.status)}</td>
+          <td class="mono text-sm text-muted">${fmtTime(r.createdAt)}</td>
+          <td><button class="btn btn-primary btn-sm" onclick="openReport('${escapeHtml(r.referenceId)}')">Investigate</button></td>
+        </tr>
+      `).join('');
+    } catch (e) {
+      tbody.innerHTML = `<tr class="loading-row"><td colspan="8" style="color:var(--accent2)">Error: ${escapeHtml(e.message)}</td></tr>`;
+    }
+  }
+
+  async function openReport(reference) {
+    activeReference = reference;
+    const error = document.getElementById('modalError');
+    error.style.display = 'none';
+    document.getElementById('modalReference').textContent = reference;
+    document.getElementById('modalNotes').textContent = 'Loading...';
+    openModal('reportModal');
+
+    try {
+      const report = await api('/analyst/reports/' + encodeURIComponent(reference));
+
+      document.getElementById('modalDomain').textContent = report.domain;
+      const urlEl = document.getElementById('modalUrl');
+      urlEl.textContent = report.url;
+      urlEl.href = report.url;
+      document.getElementById('modalVerdict').innerHTML =
+        `${verdictBadge(report.verdict)} <span class="mono text-muted" style="margin-left:8px">${report.riskScore}/100</span>` +
+        (report.category ? `<span class="text-sm text-muted" style="margin-left:8px">${escapeHtml(report.category)}</span>` : '');
+      document.getElementById('modalReporter').textContent = `${report.userName || 'Unknown'} · ${report.userEmail || ''}`;
+      document.getElementById('modalCreated').textContent = fmtTime(report.createdAt);
+      document.getElementById('modalDescription').textContent = report.description || 'No description provided.';
+      document.getElementById('modalNotes').textContent = report.analystNotes || 'No analyst notes yet.';
+      document.getElementById('modalStatus').value = report.status;
+      document.getElementById('modalNoteInput').value = report.analystNotes || '';
+      document.getElementById('modalLinks').innerHTML = [
+        report.eventId ? `Event #${report.eventId}` : null,
+        report.alertId ? `Alert #${report.alertId}` : null
+      ].filter(Boolean).join(' · ') || '<span class="text-muted">None</span>';
+
+      const reasons = parseReasons(report.reasons);
+      document.getElementById('modalReasons').innerHTML = reasons.length
+        ? reasons.map(r => `<li class="${escapeHtml(r.severity || '')}">${escapeHtml(r.label || r)}
+            <span class="reason-detail">${escapeHtml(r.detail || '')}</span></li>`).join('')
+        : '<li class="text-muted">No indicators were recorded with this report.</li>';
+
+      const currentIndex = STATUS_FLOW.indexOf(report.status);
+      document.getElementById('modalFlow').innerHTML = STATUS_FLOW.map((step, index) => {
+        const cls = index === currentIndex ? 'current' : index < currentIndex ? 'done' : '';
+        return `<span class="step ${cls}">${step}</span>`;
+      }).join('');
+    } catch (e) {
+      error.textContent = e.message;
+      error.style.display = 'block';
+    }
+  }
+
+  async function saveStatus() {
+    if (!activeReference) return;
+    const button = document.getElementById('saveStatusBtn');
+    const error = document.getElementById('modalError');
+    error.style.display = 'none';
+    button.disabled = true;
+    button.textContent = 'Saving...';
+
+    try {
+      const result = await api('/analyst/reports/' + encodeURIComponent(activeReference) + '/status', {
+        method: 'PATCH',
+        body: {
+          status: document.getElementById('modalStatus').value,
+          notes: document.getElementById('modalNoteInput').value.trim()
+        }
+      });
+      closeModal('reportModal');
+      toast(`Report ${result.referenceId} updated to ${result.status}. Reporter notified.`);
+      loadReports();
+    } catch (e) {
+      error.textContent = e.message;
+      error.style.display = 'block';
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Update Status';
+    }
+  }
+</script>
+</body>
+</html>

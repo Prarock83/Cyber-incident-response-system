@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CIRS — Web Security Guard</title>
+<link rel="stylesheet" href="../ui/theme.css">
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">◎</div>
+      <div class="brand-text">
+        <div class="brand-name">CIRS</div>
+        <div class="brand-sub">Web Security Guard</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span class="pill on" id="protectionPill">Protected</span>
+      <button class="icon-btn" id="panelBtn" title="Open security dashboard" aria-label="Open security dashboard">⤢</button>
+      <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">⚙</button>
+    </div>
+  </header>
+
+  <main class="popup-main">
+
+    <section id="viewLoading" class="view">
+      <div class="card">
+        <div class="skeleton" style="width:55%"></div>
+        <div class="skeleton" style="width:85%;margin-top:10px"></div>
+        <div class="skeleton" style="width:70%;margin-top:10px"></div>
+      </div>
+    </section>
+
+    <section id="viewSetup" class="view hidden">
+      <div class="card">
+        <p class="section-title">Connect to CIRS</p>
+        <p class="dim setup-copy">
+          Add the address of your CIRS security server. The extension contacts only this server and never
+          sends your browsing history — only the URL you choose to scan.
+        </p>
+        <div class="field">
+          <label for="apiBaseInput">CIRS server URL</label>
+          <input id="apiBaseInput" type="url" placeholder="https://your-cirs-api.onrender.com/api" spellcheck="false" autocomplete="off">
+          <span class="hint">Use https:// in production. Ask your CIRS administrator for the exact URL.</span>
+        </div>
+        <button class="btn btn-primary" id="saveApiBtn">Connect to server</button>
+        <p class="alert error hidden" id="setupError"></p>
+        <p class="tiny muted setup-note">Chrome will ask for permission to contact this server only.</p>
+      </div>
+    </section>
+
+    <section id="viewAuth" class="view hidden">
+      <div class="auth-switch">
+        <button class="tab active" data-auth="login" id="tabLogin">Sign in</button>
+        <button class="tab" data-auth="register" id="tabRegister">Create account</button>
+      </div>
+
+      <form class="card auth-card" id="loginForm" novalidate>
+        <p class="section-title">Welcome back</p>
+        <div class="field">
+          <label for="loginEmail">Email</label>
+          <input id="loginEmail" type="email" autocomplete="username" placeholder="you@example.com" required>
+        </div>
+        <div class="field">
+          <label for="loginPassword">Password</label>
+          <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Your password" required>
+        </div>
+        <button class="btn btn-primary" id="loginBtn" type="submit">Sign in</button>
+        <p class="alert error hidden" id="loginError"></p>
+        <p class="tiny muted auth-note">Analyst accounts sign in on the CIRS web dashboard, not here.</p>
+      </form>
+
+      <form class="card auth-card hidden" id="registerForm" novalidate>
+        <p class="section-title">Create your account</p>
+        <div class="field">
+          <label for="registerName">Name</label>
+          <input id="registerName" type="text" autocomplete="name" placeholder="Your name" required>
+        </div>
+        <div class="field">
+          <label for="registerEmail">Email</label>
+          <input id="registerEmail" type="email" autocomplete="email" placeholder="you@example.com" required>
+        </div>
+        <div class="field">
+          <label for="registerPassword">Password</label>
+          <input id="registerPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters with a number" required>
+          <span class="hint">At least 8 characters, including a letter and a number.</span>
+        </div>
+        <button class="btn btn-primary" id="registerBtn" type="submit">Create account</button>
+        <p class="alert error hidden" id="registerError"></p>
+        <p class="tiny muted auth-note">CIRS stores your email, a password hash, your scan history and your reports. Nothing else.</p>
+      </form>
+    </section>
+
+    <section id="viewMain" class="view hidden">
+      <div class="view-body">
+
+        <div class="site-header">
+          <div class="site-icon" id="siteIcon">🌐</div>
+          <div class="grow">
+            <div class="site-domain truncate" id="siteDomain">Loading…</div>
+            <div class="site-meta">
+              <span class="chip" id="siteProtocol">HTTPS</span>
+              <span class="tiny muted truncate" id="sitePath"></span>
+            </div>
+          </div>
+        </div>
+
+        <p class="alert info hidden" id="scanNotice"></p>
+
+        <div id="scanIdle" class="card scan-idle">
+          <p class="section-title">Not scanned yet</p>
+          <p class="dim">Run a CIRS scan to check this website for phishing and scam indicators before you sign in.</p>
+          <button class="btn btn-primary" id="scanBtn">Scan this website</button>
+        </div>
+
+        <div id="scanBusy" class="card scan-busy hidden">
+          <span class="spinner"></span>
+          <span>Analysing URL structure and reputation…</span>
+        </div>
+
+        <div class="card result hidden" id="resultCard">
+          <div class="result-head">
+            <div class="grow">
+              <div class="verdict-label" id="verdictLabel">UNKNOWN</div>
+              <p class="verdict-headline" id="verdictHeadline"></p>
+              <span class="chip neutral" id="confidenceChip">Heuristic only</span>
+            </div>
+            <div class="score-ring" id="scoreRing">
+              <span id="scoreValue">0</span><small>/100</small>
+            </div>
+          </div>
+
+          <div class="score-bar"><div class="score-fill" id="scoreFill"></div></div>
+          <p class="result-summary" id="resultSummary"></p>
+
+          <div class="reason-block">
+            <p class="section-title">Why <span class="tiny muted" id="reasonCount"></span></p>
+            <ul class="reason-list" id="reasonList"></ul>
+            <button class="link-btn hidden" id="toggleReasons" type="button">Show all reasons</button>
+          </div>
+
+          <p class="intel-line tiny muted" id="intelLine"></p>
+          <p class="disclaimer tiny" id="disclaimer"></p>
+          <p class="alert info hidden" id="existingReport"></p>
+        </div>
+
+        <p class="alert error hidden" id="scanError"></p>
+
+        <div class="action-grid">
+          <button class="btn btn-primary" id="rescanBtn">Scan website</button>
+          <button class="btn btn-danger" id="reportBtn">Report website</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="detailsBtn">View details</button>
+          <button class="btn btn-ghost" id="historyBtn">Security history</button>
+        </div>
+
+        <form class="card hidden" id="reportForm" novalidate>
+          <p class="section-title">Report this website</p>
+          <p class="tiny muted" id="reportContext"></p>
+          <div class="field">
+            <label for="reportCategory">What looks wrong?</label>
+            <select id="reportCategory">
+              <option value="Phishing / fake login page">Phishing / fake login page</option>
+              <option value="Scam or fraudulent offer">Scam or fraudulent offer</option>
+              <option value="Malware or harmful download">Malware or harmful download</option>
+              <option value="Impersonation of a brand">Impersonation of a brand</option>
+              <option value="Other suspicious behaviour">Other suspicious behaviour</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="reportDescription">What happened? (optional)</label>
+            <textarea id="reportDescription" maxlength="1000" placeholder="For example: this page asked for my card details after I clicked an email link."></textarea>
+            <span class="hint">Never include passwords, card numbers, OTPs or personal documents.</span>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-ghost" type="button" id="cancelReport">Cancel</button>
+            <button class="btn btn-primary" type="submit" id="submitReport">Submit report</button>
+          </div>
+          <p class="alert error hidden" id="reportError"></p>
+        </form>
+
+        <div class="card report-success hidden" id="reportSuccess">
+          <div class="success-mark">✓</div>
+          <p class="section-title">Report submitted</p>
+          <p class="dim" id="reportSuccessText"></p>
+          <p class="reference" id="reportReference"></p>
+          <div class="btn-row">
+            <button class="btn btn-ghost" id="viewReportsBtn" type="button">Track report</button>
+            <button class="btn btn-primary" id="anotherReportBtn" type="button">Report another</button>
+          </div>
+        </div>
+
+      </div>
+
+      <footer class="footer">
+        <span id="footerLastScan">No scans yet</span>
+        <span class="row" style="gap:10px">
+          <button class="link-btn" id="signOutBtn" type="button">Sign out</button>
+          <span class="connection" id="connStatus">Checking…</span>
+        </span>
+      </footer>
+    </section>
+
+  </main>
+</div>
+<script type="module" src="popup.js"></script>
+</body>
+</html>

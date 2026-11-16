@@ -76,6 +76,9 @@
       <a href="alerts.html"    class="nav-item" data-page="alerts"><span class="nav-icon">🔔</span> Alerts
         <span class="nav-badge" id="alertBadge" style="display:none">0</span>
       </a>
+      <a href="reports.html" class="nav-item" data-page="reports"><span class="nav-icon">🚩</span> User Reports
+        <span class="nav-badge" id="reportBadge" style="display:none">0</span>
+      </a>
       <a href="incidents.html" class="nav-item" data-page="incidents"><span class="nav-icon">⚠</span> Incidents</a>
     </nav>
     <div class="sidebar-footer">
@@ -213,6 +216,7 @@
   </div>
 </div>
 
+<script src="../js/config.js"></script>
 <script src="../js/app.js"></script>
 <script>
   requireAuth();
@@ -291,20 +295,37 @@
   async function loadMitigation() {
     const container = document.getElementById('mitigationList');
     try {
-      // Fetch via alerts and their mitigation actions
-      const alerts = await api('/alerts');
-      const statColors = { Completed:'var(--green)', 'In Progress':'var(--accent)', Pending:'var(--yellow)', Failed:'var(--accent2)' };
-      container.innerHTML = alerts.map(a => `
+      const [alerts, mitigations] = await Promise.all([api('/alerts'), api('/mitigations')]);
+      const byAlert = new Map();
+      mitigations.forEach(m => {
+        if (!byAlert.has(m.alert_id)) byAlert.set(m.alert_id, []);
+        byAlert.get(m.alert_id).push(m);
+      });
+
+      container.innerHTML = alerts.map(a => {
+        const actions = byAlert.get(a.alert_id) || [];
+        return `
         <div class="panel mb-4 anim-up">
           <div class="panel-header">
-            <div class="panel-title">${a.alert_type} ${severityBadge(a.priority)}</div>
+            <div class="panel-title">${escapeHtml(a.alert_type)} ${severityBadge(a.priority)}</div>
             ${statusBadge(a.status)}
           </div>
           <div class="panel-body" id="mit-${a.alert_id}">
-            <div style="color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:11px;text-align:center;padding:8px">No mitigation actions yet</div>
+            ${actions.length ? actions.map(m => `
+              <div class="mitigation-item">
+                <div class="mitigation-item-top">
+                  <span class="action-name">${escapeHtml(m.action_type)}</span>
+                  <span class="badge ${m.status === 'Completed' ? 'badge-resolved' : m.status === 'Failed' ? 'badge-critical' : 'badge-progress'}">${escapeHtml(m.status)}</span>
+                </div>
+                ${m.description ? `<div class="text-sm text-muted">${escapeHtml(m.description)}</div>` : ''}
+                <div class="text-sm text-muted" style="margin-top:6px;font-family:'Share Tech Mono',monospace;font-size:11px">
+                  ${escapeHtml(m.analyst_name || 'Unassigned')} · ${fmtTime(m.performed_at || m.created_at)}
+                </div>
+              </div>`).join('')
+              : '<div style="color:var(--muted);font-family:\'Share Tech Mono\',monospace;font-size:11px;text-align:center;padding:8px">No mitigation actions yet</div>'}
           </div>
-        </div>
-      `).join('') || '<div class="empty-state"><div>No alerts found</div></div>';
+        </div>`;
+      }).join('') || '<div class="empty-state"><div>No alerts found</div></div>';
 
       // Populate modal selects
       const as = document.getElementById('mitAlert');
@@ -339,9 +360,34 @@
   async function submitMitigation() {
     const alertId = document.getElementById('mitAlert').value;
     const type    = document.getElementById('mitType').value.trim();
+    const description = document.getElementById('mitDesc').value.trim();
+    const analyst = document.getElementById('mitAnalyst').value;
     if (!alertId || !type) { toast('Alert and Action Type are required', 'error'); return; }
-    toast('Note: Mitigation POST endpoint can be added to server.js per your needs', 'success');
-    closeModal('addMitigationModal');
+
+    const button = document.querySelector('#addMitigationModal .btn-primary');
+    button.disabled = true;
+    button.textContent = 'Saving...';
+    try {
+      await api('/mitigations', {
+        method: 'POST',
+        body: {
+          alert_id: Number(alertId),
+          action_type: type,
+          description,
+          performed_by: analyst ? Number(analyst) : undefined
+        }
+      });
+      toast('Mitigation action recorded');
+      closeModal('addMitigationModal');
+      document.getElementById('mitType').value = '';
+      document.getElementById('mitDesc').value = '';
+      loadMitigation();
+    } catch(e) {
+      toast('Error: ' + e.message, 'error');
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Add Action';
+    }
   }
 </script>
 </body>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CIRS — High-risk website warning</title>
+<link rel="stylesheet" href="../ui/theme.css">
+<link rel="stylesheet" href="warning.css">
+</head>
+<body class="warning-body">
+<main class="warning-shell">
+  <div class="warning-badge">⚠</div>
+
+  <p class="eyebrow">CIRS PROTECTION</p>
+  <h1 id="warningTitle">This website looks dangerous</h1>
+  <p class="warning-lead" id="warningLead">
+    CIRS identified risk indicators on the page you were about to open. Do not enter passwords,
+    card details or personal information.
+  </p>
+
+  <section class="card site-block">
+    <div class="label-row">
+      <span class="tiny muted uppercase">Website</span>
+      <span class="chip danger" id="verdictChip">DANGEROUS</span>
+    </div>
+    <p class="warning-url" id="warningUrl">—</p>
+    <div class="risk-row">
+      <span class="tiny muted">Risk score</span>
+      <span class="mono" id="riskScore">0/100</span>
+    </div>
+    <div class="score-bar"><div class="score-fill" id="scoreFill"></div></div>
+  </section>
+
+  <section class="card">
+    <div class="label-row">
+      <span class="tiny muted uppercase">Why this warning</span>
+      <button type="button" class="btn btn-ghost btn-sm" id="toggleDetails">View details</button>
+    </div>
+    <ul class="reason-list" id="reasonList">
+      <li class="reason muted">No additional detail was provided.</li>
+    </ul>
+  </section>
+
+  <section class="card recommended">
+    <p class="tiny muted uppercase">Recommended action</p>
+    <p id="recommendation">Close this page. If you need this service, open it from the official app or by typing the address yourself.</p>
+  </section>
+
+  <div class="warning-actions">
+    <button class="btn btn-primary" id="goBackBtn">← Go back to safety</button>
+    <button class="btn btn-ghost" id="detailsBtn">View risk details</button>
+  </div>
+
+  <label class="acknowledge">
+    <input type="checkbox" id="ackCheck">
+    <span>I understand the risk and want to continue to this website anyway.</span>
+  </label>
+
+  <button class="btn btn-danger" id="continueBtn" disabled>Continue to this website</button>
+
+  <p class="tiny muted warning-foot">
+    This warning is produced by CIRS heuristics and, when configured, threat-intelligence lookups.
+    It is not a guarantee that the site is malicious, and CIRS cannot protect you once you choose to continue.
+  </p>
+</main>
+<script type="module" src="warning.js"></script>
+</body>
+</html>

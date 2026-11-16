@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CIRS — Security Dashboard</title>
+<link rel="stylesheet" href="../ui/theme.css">
+<link rel="stylesheet" href="panel.css">
+</head>
+<body>
+<div class="app panel-app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">◎</div>
+      <div class="brand-text">
+        <div class="brand-name">CIRS</div>
+        <div class="brand-sub">Security Dashboard</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span class="pill on" id="protectionPill">Protected</span>
+      <button class="icon-btn" id="refreshBtn" title="Refresh" aria-label="Refresh">⟳</button>
+      <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">⚙</button>
+    </div>
+  </header>
+
+  <div id="authBlocked" class="pane hidden">
+    <div class="card">
+      <p class="section-title">Sign in to CIRS</p>
+      <p class="dim">Use your personal CIRS account to see your scans, reports and investigation updates.</p>
+      <form id="panelLoginForm">
+        <div class="field">
+          <label for="panelEmail">Email</label>
+          <input id="panelEmail" type="email" autocomplete="username" placeholder="you@example.com" required>
+        </div>
+        <div class="field">
+          <label for="panelPassword">Password</label>
+          <input id="panelPassword" type="password" autocomplete="current-password" placeholder="Your password" required>
+        </div>
+        <button class="btn btn-primary" id="panelLoginBtn" type="submit">Sign in</button>
+        <p class="alert error hidden" id="panelLoginError"></p>
+      </form>
+      <p class="tiny muted" style="margin-top:10px">
+        No account yet? Open the CIRS toolbar icon and choose “Create account”.
+      </p>
+    </div>
+  </div>
+
+  <div id="panelBody" class="hidden">
+    <div class="panel-user">
+      <div class="avatar" id="userInitials">--</div>
+      <div class="grow">
+        <div class="user-name truncate" id="userName">Loading…</div>
+        <div class="tiny muted truncate" id="userEmail"></div>
+      </div>
+      <span class="connection" id="connStatus">Checking…</span>
+    </div>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="overview" type="button">Overview</button>
+      <button class="tab" data-tab="scans" type="button">Scans</button>
+      <button class="tab" data-tab="reports" type="button">Reports</button>
+      <button class="tab" data-tab="notifications" type="button">
+        Alerts <span class="tab-badge hidden" id="notifBadge">0</span>
+      </button>
+    </nav>
+
+    <main class="panel-main">
+
+      <section id="pane-overview" class="pane">
+        <div class="card">
+          <div class="row between">
+            <p class="section-title">Current website</p>
+            <button class="btn btn-primary btn-sm" id="scanCurrentBtn" type="button">Scan</button>
+          </div>
+          <p class="panel-domain truncate" id="currentDomain">—</p>
+          <p class="tiny muted truncate" id="currentPath"></p>
+          <div id="currentResult" class="hidden"></div>
+          <p class="alert error hidden" id="scanPanelError"></p>
+        </div>
+
+        <div class="stat-grid" id="statGrid">
+          <div class="stat"><div class="label">Scans</div><div class="value accent skeleton" style="height:22px"></div></div>
+          <div class="stat"><div class="label">Suspicious</div><div class="value warn skeleton" style="height:22px"></div></div>
+          <div class="stat"><div class="label">Reports</div><div class="value accent skeleton" style="height:22px"></div></div>
+          <div class="stat"><div class="label">Open reports</div><div class="value danger skeleton" style="height:22px"></div></div>
+        </div>
+
+        <div class="card">
+          <p class="section-title">Threat categories</p>
+          <div id="categoryList" class="list"></div>
+        </div>
+
+        <div class="card">
+          <p class="section-title">Recent activity</p>
+          <div id="activityList" class="list"></div>
+        </div>
+
+        <div class="card">
+          <p class="section-title">Protection settings</p>
+          <label class="toggle-row">
+            <span>
+              <strong>Warn me before high-risk sites load</strong>
+              <small class="tiny muted">Shows the CIRS warning page for sites flagged as dangerous.</small>
+            </span>
+            <input type="checkbox" id="toggleProtection">
+          </label>
+          <label class="toggle-row">
+            <span>
+              <strong>Security notifications</strong>
+              <small class="tiny muted">Browser notifications for dangerous sites and report updates.</small>
+            </span>
+            <input type="checkbox" id="toggleNotifications">
+          </label>
+          <label class="toggle-row">
+            <span>
+              <strong>Notify me about suspicious sites</strong>
+              <small class="tiny muted">Adds a notification for suspicious (not just confirmed dangerous) results.</small>
+            </span>
+            <input type="checkbox" id="toggleSuspicious">
+          </label>
+        </div>
+      </section>
+
+      <section id="pane-scans" class="pane hidden">
+        <div class="panel-toolbar">
+          <p class="section-title">Scan history</p>
+          <button class="btn btn-ghost btn-sm" id="refreshScans" type="button">Refresh</button>
+        </div>
+        <div id="scanList" class="list"></div>
+      </section>
+
+      <section id="pane-reports" class="pane hidden">
+        <div class="panel-toolbar">
+          <p class="section-title">My reports</p>
+          <select id="reportFilter" class="filter-select">
+            <option value="">All statuses</option>
+            <option>Submitted</option>
+            <option>Under Review</option>
+            <option>Investigating</option>
+            <option>Confirmed Threat</option>
+            <option>False Positive</option>
+            <option>Resolved</option>
+          </select>
+        </div>
+        <div id="reportList" class="list"></div>
+      </section>
+
+      <section id="pane-notifications" class="pane hidden">
+        <div class="panel-toolbar">
+          <p class="section-title">Alerts</p>
+          <button class="btn btn-ghost btn-sm" id="markAllRead" type="button">Mark all read</button>
+        </div>
+        <div id="notificationList" class="list"></div>
+      </section>
+
+    </main>
+
+    <footer class="footer">
+      <button class="link-btn" id="signOutBtn" type="button">Sign out</button>
+      <span class="tiny muted">CIRS v2.0.0 · <span id="footerApi">—</span></span>
+    </footer>
+  </div>
+
+</div>
+<script type="module" src="panel.js"></script>
+</body>
+</html>

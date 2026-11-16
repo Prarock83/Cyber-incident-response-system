@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CIRS — Settings</title>
+<link rel="stylesheet" href="../ui/theme.css">
+<link rel="stylesheet" href="options.css">
+</head>
+<body>
+<main class="options-shell">
+  <header class="options-head">
+    <div class="brand">
+      <div class="brand-mark">◎</div>
+      <div class="brand-text">
+        <div class="brand-name">CIRS</div>
+        <div class="brand-sub">Web Security Guard · Settings</div>
+      </div>
+    </div>
+    <span class="pill on" id="protectionPill">Protected</span>
+  </header>
+
+  <section class="card">
+    <p class="section-title">Server connection</p>
+    <p class="dim">CIRS scans URLs on your own CIRS server. The extension never sends your browsing history, passwords, cookies or page contents.</p>
+    <div class="field">
+      <label for="apiBase">CIRS server URL</label>
+      <input id="apiBase" type="url" placeholder="https://your-cirs-api.onrender.com/api" spellcheck="false" autocomplete="off">
+      <span class="hint" id="permissionHint">Chrome asks permission for this server only.</span>
+    </div>
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      <button class="btn btn-primary" id="saveServer" type="button">Save &amp; allow access</button>
+      <button class="btn btn-ghost" id="testServer" type="button">Test connection</button>
+    </div>
+    <p class="alert hidden" id="serverMessage"></p>
+    <div id="serverDetails" class="server-details hidden"></div>
+  </section>
+
+  <section class="card">
+    <p class="section-title">Protection</p>
+    <label class="toggle-row">
+      <span>
+        <strong>Warn before high-risk websites load</strong>
+        <small class="tiny muted">Shows the CIRS warning page for sites flagged as dangerous during your scans.</small>
+      </span>
+      <input type="checkbox" id="protectionEnabled">
+    </label>
+    <label class="toggle-row">
+      <span>
+        <strong>Security notifications</strong>
+        <small class="tiny muted">Browser notifications for dangerous sites, suspicious sites and report updates.</small>
+      </span>
+      <input type="checkbox" id="notificationsEnabled">
+    </label>
+    <label class="toggle-row">
+      <span>
+        <strong>Notify about suspicious sites</strong>
+        <small class="tiny muted">Also notify when a site shows risk indicators but no confirmed threat.</small>
+      </span>
+      <input type="checkbox" id="notifySuspicious">
+    </label>
+  </section>
+
+  <section class="card">
+    <p class="section-title">Account</p>
+    <div class="account-row">
+      <div class="avatar" id="accountInitials">--</div>
+      <div class="grow">
+        <div id="accountName" style="font-weight:650">Not signed in</div>
+        <div class="tiny muted" id="accountEmail">Sign in from the extension popup.</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="openDashboard" type="button">Open dashboard</button>
+      <button class="btn btn-danger btn-sm" id="signOut" type="button">Sign out</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <p class="section-title">Privacy &amp; limits</p>
+    <ul class="privacy-list">
+      <li>Only the URL you explicitly scan is sent to your CIRS server, and only when you press Scan or Report.</li>
+      <li>No page content, form values, cookies, tokens or browsing history are collected.</li>
+      <li>Threat-intelligence lookups are performed by the server, not the browser. If no API key is configured, results are clearly marked as heuristic-only.</li>
+      <li>CIRS is not an antivirus. A SAFE result means no known threat was reported — it is not a guarantee.</li>
+    </ul>
+  </section>
+
+  <footer class="options-foot">
+    <span>CIRS — Cybersecurity Incident Response &amp; Protection System · v2.0.0</span>
+    <a href="https://developer.chrome.com/docs/extensions/" target="_blank" rel="noreferrer">Extension docs</a>
+  </footer>
+</main>
+<script type="module" src="options.js"></script>
+</body>
+</html>
